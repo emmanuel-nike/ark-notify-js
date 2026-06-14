@@ -129,13 +129,14 @@ export class ArkNotifyConnection {
     )
 
     let token = resolveValue(this.config.token)
-    if (!token && this.config.clientId && this.config.credentials) {
+    if (!token && this.config.clientId) {
       const result = await fetchConnectionToken({
         baseUrl: this.config.baseUrl,
         appKey: this.config.appKey,
         credentials: this.config.credentials,
         client_id: this.config.clientId,
         user_data: this.config.user_data,
+        serverAuthUrl: this.config.serverAuthUrl,
         fetch: this.config.fetch,
       })
       token = result.token

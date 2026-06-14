@@ -6,8 +6,11 @@ import { ArkNotifySSE } from '../sse'
 import type { ArkNotifyClientConfig, ArkNotifyConnectionConfig, ArkNotifySSEConfig } from '../types'
 import { ArkNotifyContext } from './context'
 
-export interface ArkNotifyProviderProps extends ArkNotifyClientConfig {
+export interface ArkNotifyProviderProps {
   children: ReactNode
+  baseUrl?: string
+  token?: ArkNotifyClientConfig['token']
+  fetch?: ArkNotifyClientConfig['fetch']
 }
 
 export function ArkNotifyProvider({
@@ -19,7 +22,7 @@ export function ArkNotifyProvider({
   const resolvedBaseUrl = useMemo(() => resolveBaseUrl(baseUrl), [baseUrl])
   const clientRef = useRef<ArkNotifyClient | null>(null)
 
-  clientRef.current ??= new ArkNotifyClient({ baseUrl: resolvedBaseUrl, token, fetch: fetchFn })
+  clientRef.current ??= new ArkNotifyClient({ baseUrl, token, fetch: fetchFn })
 
   const client = clientRef.current
 

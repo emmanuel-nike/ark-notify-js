@@ -18,11 +18,18 @@ For React apps, `react` 18+ is a peer dependency.
 Wrap your app with the provider, connect a WebSocket client, and subscribe to a channel:
 
 ```tsx
-import { ArkNotifyProvider, useConnection, useChannel } from 'ark-notify-js/react'
+import {
+  configureArkNotify,
+  ArkNotifyProvider,
+  useConnection,
+  useChannel,
+} from 'ark-notify-js/react'
+
+configureArkNotify({ baseUrl: 'https://my-instance.ark-notify.com' })
 
 function App() {
   return (
-    <ArkNotifyProvider baseUrl="http://localhost:3000">
+    <ArkNotifyProvider>
       <Chat />
     </ArkNotifyProvider>
   )
@@ -43,9 +50,7 @@ function Chat() {
   return (
     <div>
       <p>Status: {state}</p>
-      <button onClick={() => publish('message', { text: 'Hello!' })}>
-        Send
-      </button>
+      <button onClick={() => publish('message', { text: 'Hello!' })}>Send</button>
     </div>
   )
 }
@@ -55,25 +60,30 @@ function Chat() {
 
 Ark Notify has two API planes:
 
-| Plane | Purpose | Auth |
-|-------|---------|------|
-| **Control** | Login, manage applications | JWT (`Authorization: Bearer`) |
-| **Data** | WebSocket/SSE clients, server-side publish | `clientId` / connection token (clients) or app key + secret (servers) |
+
+| Plane       | Purpose                                    | Auth                                                                  |
+| ----------- | ------------------------------------------ | --------------------------------------------------------------------- |
+| **Control** | Login, manage applications                 | JWT (`Authorization: Bearer`)                                         |
+| **Data**    | WebSocket/SSE clients, server-side publish | `clientId` / connection token (clients) or app key + secret (servers) |
+
 
 **Never expose your app `secret` in browser code.** Issue connection tokens and private-channel auth from your backend.
 
 ## Provider
 
-```tsx
-import { ArkNotifyProvider } from 'ark-notify-js/react'
+`baseUrl` is optional. Omit it to use the built-in default, or set a custom default once with `configureArkNotify()`:
 
-<ArkNotifyProvider
-  baseUrl="https://notify.example.com"
-  token={platformJwt} // optional — for admin dashboards
->
+```tsx
+import { configureArkNotify, ArkNotifyProvider } from 'ark-notify-js/react'
+
+configureArkNotify({ baseUrl: 'https://my-instance.ark-notify.com' })
+
+<ArkNotifyProvider token={platformJwt}>
   {children}
 </ArkNotifyProvider>
 ```
+
+You can still pass `baseUrl` on the provider to override the default for that subtree.
 
 ## Platform auth (control plane)
 
@@ -87,11 +97,7 @@ function Dashboard() {
   const { apps, create, remove } = useApplications()
 
   if (!isAuthenticated) {
-    return (
-      <button onClick={() => login({ email: '...', password: '...' })}>
-        Log in
-      </button>
-    )
+    return <button onClick={() => login({ email: '...', password: '...' })}>Log in</button>
   }
 
   return (
@@ -99,7 +105,9 @@ function Dashboard() {
       <p>Hello, {user?.firstName}</p>
       <button onClick={() => create({ name: 'My App' })}>New app</button>
       {apps.map((app) => (
-        <div key={app.id}>{app.name} — {app.appKey}</div>
+        <div key={app.id}>
+          {app.name} — {app.appKey}
+        </div>
       ))}
     </div>
   )
@@ -115,7 +123,7 @@ import { useConnection } from 'ark-notify-js/react'
 
 const {
   connection,
-  state,           // 'disconnected' | 'connecting' | 'connected' | 'reconnecting' | 'failed'
+  state, // 'disconnected' | 'connecting' | 'connected' | 'reconnecting' | 'failed'
   connectionId,
   clientId,
   authenticated,
@@ -123,8 +131,8 @@ const {
   disconnect,
 } = useConnection({
   appKey: 'app_abc',
-  clientId: 'user-42',           // when requireClientAuth is false
-  token: 'app_abc.payload.sig',  // recommended — from your backend
+  clientId: 'user-42', // when requireClientAuth is false
+  token: 'app_abc.payload.sig', // recommended — from your backend
   autoReconnect: true,
   onPrivateChannelAuth: async (channel, connectionId) => {
     const res = await fetch('/api/channel-auth', {
@@ -197,29 +205,38 @@ import {
 } from 'ark-notify-js'
 
 // REST client
-const client = new ArkNotifyClient({ baseUrl: 'http://localhost:3000' })
+const client = new ArkNotifyClient()
 await client.login({ email, password })
 const { app } = await client.createApplication({ name: 'My App' })
 
 // Server-side publish (use app credentials — never in browser)
-await client.publishEvent(app.appKey, { appKey, secret }, {
-  channel: 'room-1',
-  event: 'order.created',
-  data: { id: 123 },
-})
+await client.publishEvent(
+  app.appKey,
+  { appKey, secret },
+  {
+    channel: 'room-1',
+    event: 'order.created',
+    data: { id: 123 },
+  }
+)
 
-// Fetch a connection token (server-side)
+// Fetch a connection token (backend — requires app secret when no serverAuthUrl)
 const { token } = await fetchConnectionToken({
-  baseUrl: 'http://localhost:3000',
   appKey: app.appKey,
   credentials: { appKey: app.appKey, secret: app.secret! },
   client_id: 'user-42',
   user_data: { name: 'Alice' },
 })
 
+// Frontend — when the application has a serverAuthUrl configured
+const { token: frontendToken } = await fetchConnectionToken({
+  appKey: 'app_abc',
+  client_id: 'user-42',
+  user_data: { name: 'Alice' },
+})
+
 // WebSocket — pass token directly
 const conn = new ArkNotifyConnection({
-  baseUrl: 'http://localhost:3000',
   appKey: 'app_abc',
   token,
 })
@@ -227,7 +244,6 @@ await conn.connect()
 
 // WebSocket — auto-fetch token when credentials + clientId are provided (server-side)
 const autoConn = new ArkNotifyConnection({
-  baseUrl: 'http://localhost:3000',
   appKey: app.appKey,
   clientId: 'user-42',
   credentials: { appKey: app.appKey, secret: app.secret! },
@@ -240,7 +256,7 @@ await autoConn.subscribe('private-room-1', { auth: 'app_abc:...' })
 autoConn.publish('room-1', 'message', { text: 'hi' })
 ```
 
-When `token` is omitted, `ArkNotifyConnection` automatically calls `POST /api/v1/apps/:appKey/connection-token` if both `clientId` and `credentials` are set. On reconnect, a fresh token is fetched.
+When `token` is omitted, `ArkNotifyConnection` automatically calls `POST /api/v1/apps/:appKey/connection-token` when `clientId` is set. Pass `credentials` for backend-only apps, or omit them when the application has a `serverAuthUrl` (frontend-safe). On reconnect, a fresh token is fetched.
 
 ## System admin
 
@@ -253,24 +269,26 @@ const { data, loading, refresh } = useAdminChannels()
 
 ## API coverage
 
-| Feature | Hook / Class | Method |
-|---------|--------------|--------|
-| Health | `ArkNotifyClient` | `.health()` |
-| Login / me | `usePlatformAuth`, `ArkNotifyClient` | `.login()`, `.me()` |
-| Application CRUD | `useApplications`, `ArkNotifyClient` | `.listApplications()`, `.createApplication()`, … |
-| Regenerate secret | `useApplications` | `.regenerateSecret()` |
-| Admin channels | `useAdminChannels` | `.adminChannels()` |
-| Publish (server) | `ArkNotifyClient` | `.publishEvent()` |
-| Channel auth (server) | `ArkNotifyClient` | `.authorizeChannel()` |
+
+| Feature                   | Hook / Class                              | Method                                              |
+| ------------------------- | ----------------------------------------- | --------------------------------------------------- |
+| Health                    | `ArkNotifyClient`                         | `.health()`                                         |
+| Login / me                | `usePlatformAuth`, `ArkNotifyClient`      | `.login()`, `.me()`                                 |
+| Application CRUD          | `useApplications`, `ArkNotifyClient`      | `.listApplications()`, `.createApplication()`, …    |
+| Regenerate secret         | `useApplications`                         | `.regenerateSecret()`                               |
+| Admin channels            | `useAdminChannels`                        | `.adminChannels()`                                  |
+| Publish (server)          | `ArkNotifyClient`                         | `.publishEvent()`                                   |
+| Channel auth (server)     | `ArkNotifyClient`                         | `.authorizeChannel()`                               |
 | Connection token (server) | `ArkNotifyClient`, `fetchConnectionToken` | `.issueConnectionToken()`, `fetchConnectionToken()` |
-| WebSocket connect | `useConnection`, `ArkNotifyConnection` | `.connect()` |
-| Subscribe / unsubscribe | `useChannel`, `ArkNotifyConnection` | `.subscribe()`, `.unsubscribe()` |
-| Publish (client) | `useChannel`, `ArkNotifyConnection` | `.publish()` |
-| Presence | `usePresence`, `ArkNotifyConnection` | `.presenceEnter()`, `.presenceUpdate()`, … |
-| SSE stream | `useSSE`, `ArkNotifySSE` | `.connect()` |
-| Private channels | `onPrivateChannelAuth` callback | — |
-| Auto-reconnect | `useConnection` | `autoReconnect: true` |
-| Heartbeat | `ArkNotifyConnection` | Server ping auto-replied |
+| WebSocket connect         | `useConnection`, `ArkNotifyConnection`    | `.connect()`                                        |
+| Subscribe / unsubscribe   | `useChannel`, `ArkNotifyConnection`       | `.subscribe()`, `.unsubscribe()`                    |
+| Publish (client)          | `useChannel`, `ArkNotifyConnection`       | `.publish()`                                        |
+| Presence                  | `usePresence`, `ArkNotifyConnection`      | `.presenceEnter()`, `.presenceUpdate()`, …          |
+| SSE stream                | `useSSE`, `ArkNotifySSE`                  | `.connect()`                                        |
+| Private channels          | `onPrivateChannelAuth` callback           | —                                                   |
+| Auto-reconnect            | `useConnection`                           | `autoReconnect: true`                               |
+| Heartbeat                 | `ArkNotifyConnection`                     | Server ping auto-replied                            |
+
 
 ## Error handling
 

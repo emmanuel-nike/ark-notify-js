@@ -1,5 +1,6 @@
 import { resolveBaseUrl } from './config'
-import { ArkNotifyError } from './utils'
+import { fetchConnectionToken } from './connection-token'
+import { ArkNotifyError, resolveValue } from './utils'
 import type {
   AdminChannelsResponse,
   Application,
@@ -18,7 +19,6 @@ import type {
   UpdateApplicationInput,
   User,
 } from './types'
-import { resolveValue } from './utils'
 
 type RequestOptions = {
   method?: string
@@ -167,13 +167,15 @@ export class ArkNotifyClient {
 
   issueConnectionToken(
     appKey: string,
-    credentials: AppCredentials,
-    input: ConnectionTokenInput
+    input: ConnectionTokenInput,
+    credentials?: AppCredentials
   ): Promise<ConnectionTokenResponse> {
-    return this.request(`/api/v1/apps/${appKey}/connection-token`, {
-      method: 'POST',
-      body: input,
+    return fetchConnectionToken({
+      baseUrl: this.baseUrl,
+      appKey,
       credentials,
+      ...input,
+      fetch: this.fetchFn,
     })
   }
 }

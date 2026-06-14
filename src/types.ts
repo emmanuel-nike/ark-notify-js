@@ -285,10 +285,12 @@ export interface ArkNotifyConnectionConfig {
   baseUrl?: string
   appKey: string
   clientId?: string
-  /** Signed connection token, or a resolver. Omit to auto-fetch when `credentials` and `clientId` are set. */
+  /** Signed connection token, or a resolver. Omit to auto-fetch when `clientId` is set. */
   token?: string | (() => string | null | undefined)
-  /** App credentials for auto-fetching a connection token (server-side only — never in browser code). */
+  /** App credentials for auto-fetching a connection token (backend-only when no serverAuthUrl). */
   credentials?: AppCredentials
+  /** Override server auth URL when auto-fetching a token; uses the application default when omitted. */
+  serverAuthUrl?: string | null
   /** Forwarded to the connection-token endpoint when auto-fetching a token. */
   user_data?: Record<string, unknown>
   autoReconnect?: boolean
