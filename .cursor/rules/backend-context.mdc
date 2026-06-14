@@ -1,0 +1,26 @@
+---
+description: Backend API reference for the current project
+alwaysApply: false
+---
+
+# Backend context
+
+The Ark Notify backend lives in the sibling workspace folder `ark-notify` (path: `../`).
+Before implementing API calls, auth, WebSocket, or SSE features, read:
+
+- `ark-notify/docs/API.md` — full API reference
+- `ark-notify/README.md` — architecture and quick start
+- `ark-notify/src/routes/api.js` — route definitions
+
+## Conventions
+
+- Base URL (local): `http://localhost:3000`
+- Control plane auth: JWT (`Authorization: Bearer <token>`)
+- Data plane auth: `X-App-Key` + `X-App-Secret` headers
+- WebSocket: `/app/:appKey?clientId=...`
+
+Do not import backend source into the React app. Call the REST/WebSocket API only.
+
+- WebSocket: `/app/:appKey?clientId=...`
+
+Do not import backend source into the React app. Call the REST/WebSocket API only.
