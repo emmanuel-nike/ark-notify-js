@@ -10,19 +10,22 @@ export interface ArkNotifyProviderProps extends ArkNotifyClientConfig {
   children: ReactNode
 }
 
-export function ArkNotifyProvider({ children, baseUrl, token, fetch: fetchFn }: ArkNotifyProviderProps) {
+export function ArkNotifyProvider({
+  children,
+  baseUrl,
+  token,
+  fetch: fetchFn,
+}: Readonly<ArkNotifyProviderProps>) {
   const resolvedBaseUrl = useMemo(() => resolveBaseUrl(baseUrl), [baseUrl])
   const clientRef = useRef<ArkNotifyClient | null>(null)
 
-  if (!clientRef.current) {
-    clientRef.current = new ArkNotifyClient({ baseUrl: resolvedBaseUrl, token, fetch: fetchFn })
-  }
+  clientRef.current ??= new ArkNotifyClient({ baseUrl: resolvedBaseUrl, token, fetch: fetchFn })
 
   const client = clientRef.current
 
   useEffect(() => {
     if (token === undefined) return
-    const resolved = typeof token === 'function' ? token() ?? null : token ?? null
+    const resolved = typeof token === 'function' ? (token() ?? null) : (token ?? null)
     client.setToken(resolved)
   }, [client, token])
 
