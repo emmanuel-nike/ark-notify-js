@@ -1,14 +1,14 @@
-# ark-notify
+# ark-notify-js
 
 JavaScript SDK for [Ark Notify](https://github.com/ark-notify/ark-notify) — real-time pub/sub, presence, SSE streaming, and platform management.
 
-- **Core API** (`ark-notify`) — imperative client, WebSocket, and SSE classes for any JavaScript environment
-- **React bindings** (`ark-notify/react`) — hooks and provider for React 18+ applications
+- **Core API** (`ark-notify-js`) — imperative client, WebSocket, and SSE classes for any JavaScript environment
+- **React bindings** (`ark-notify-js/react`) — hooks and provider for React 18+ applications
 
 ## Install
 
 ```bash
-npm install ark-notify
+npm install ark-notify-js
 ```
 
 For React apps, `react` 18+ is a peer dependency.
@@ -18,7 +18,7 @@ For React apps, `react` 18+ is a peer dependency.
 Wrap your app with the provider, connect a WebSocket client, and subscribe to a channel:
 
 ```tsx
-import { ArkNotifyProvider, useConnection, useChannel } from 'ark-notify/react'
+import { ArkNotifyProvider, useConnection, useChannel } from 'ark-notify-js/react'
 
 function App() {
   return (
@@ -57,7 +57,7 @@ Ark Notify has two API planes:
 
 | Plane | Purpose | Auth |
 |-------|---------|------|
-| **Control** | Register, login, manage applications | JWT (`Authorization: Bearer`) |
+| **Control** | Login, manage applications | JWT (`Authorization: Bearer`) |
 | **Data** | WebSocket/SSE clients, server-side publish | `clientId` / connection token (clients) or app key + secret (servers) |
 
 **Never expose your app `secret` in browser code.** Issue connection tokens and private-channel auth from your backend.
@@ -65,7 +65,7 @@ Ark Notify has two API planes:
 ## Provider
 
 ```tsx
-import { ArkNotifyProvider } from 'ark-notify/react'
+import { ArkNotifyProvider } from 'ark-notify-js/react'
 
 <ArkNotifyProvider
   baseUrl="https://notify.example.com"
@@ -80,7 +80,7 @@ import { ArkNotifyProvider } from 'ark-notify/react'
 For admin dashboards that manage applications:
 
 ```tsx
-import { usePlatformAuth, useApplications } from 'ark-notify/react'
+import { usePlatformAuth, useApplications } from 'ark-notify-js/react'
 
 function Dashboard() {
   const { user, login, logout, isAuthenticated } = usePlatformAuth()
@@ -111,7 +111,7 @@ function Dashboard() {
 ### `useConnection`
 
 ```tsx
-import { useConnection } from 'ark-notify/react'
+import { useConnection } from 'ark-notify-js/react'
 
 const {
   connection,
@@ -142,7 +142,7 @@ const {
 Auto-subscribes on mount and unsubscribes on unmount:
 
 ```tsx
-import { useChannel } from 'ark-notify/react'
+import { useChannel } from 'ark-notify-js/react'
 
 const { subscribed, publish, unsubscribe } = useChannel(connection, 'room-1', {
   history: true,
@@ -158,7 +158,7 @@ publish('typing', { typing: true })
 Track channel presence members:
 
 ```tsx
-import { usePresence } from 'ark-notify/react'
+import { usePresence } from 'ark-notify-js/react'
 
 const { members, update, leave } = usePresence(connection, 'room-1', {
   initialData: { status: 'online' },
@@ -173,7 +173,7 @@ update({ status: 'away' })
 For read-only event streams without WebSocket:
 
 ```tsx
-import { useSSE } from 'ark-notify/react'
+import { useSSE } from 'ark-notify-js/react'
 
 const { connected, bind } = useSSE({
   appKey: 'app_abc',
@@ -194,7 +194,7 @@ import {
   ArkNotifyConnection,
   ArkNotifySSE,
   fetchConnectionToken,
-} from 'ark-notify'
+} from 'ark-notify-js'
 
 // REST client
 const client = new ArkNotifyClient({ baseUrl: 'http://localhost:3000' })
@@ -245,7 +245,7 @@ When `token` is omitted, `ArkNotifyConnection` automatically calls `POST /api/v1
 ## System admin
 
 ```tsx
-import { useAdminChannels } from 'ark-notify/react'
+import { useAdminChannels } from 'ark-notify-js/react'
 
 const { data, loading, refresh } = useAdminChannels()
 // Requires SYSTEM_ADMIN JWT via ArkNotifyProvider token
@@ -256,7 +256,7 @@ const { data, loading, refresh } = useAdminChannels()
 | Feature | Hook / Class | Method |
 |---------|--------------|--------|
 | Health | `ArkNotifyClient` | `.health()` |
-| Register / login / me | `usePlatformAuth`, `ArkNotifyClient` | `.register()`, `.login()`, `.me()` |
+| Login / me | `usePlatformAuth`, `ArkNotifyClient` | `.login()`, `.me()` |
 | Application CRUD | `useApplications`, `ArkNotifyClient` | `.listApplications()`, `.createApplication()`, … |
 | Regenerate secret | `useApplications` | `.regenerateSecret()` |
 | Admin channels | `useAdminChannels` | `.adminChannels()` |
@@ -277,7 +277,7 @@ const { data, loading, refresh } = useAdminChannels()
 All REST errors throw `ArkNotifyError` with `status`, `code`, and `message`:
 
 ```ts
-import { ArkNotifyError } from 'ark-notify'
+import { ArkNotifyError } from 'ark-notify-js'
 
 try {
   await client.login({ email, password })

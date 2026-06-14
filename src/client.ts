@@ -15,7 +15,6 @@ import type {
   LoginInput,
   PublishEventInput,
   PublishEventResponse,
-  RegisterInput,
   UpdateApplicationInput,
   User,
 } from './types'
@@ -94,10 +93,6 @@ export class ArkNotifyClient {
   }
 
   // ── Platform auth ───────────────────────────────────────────────────────
-
-  register(input: RegisterInput): Promise<AuthResponse> {
-    return this.request('/api/v1/auth/register', { method: 'POST', body: input })
-  }
 
   login(input: LoginInput): Promise<AuthResponse> {
     return this.request('/api/v1/auth/login', { method: 'POST', body: input })

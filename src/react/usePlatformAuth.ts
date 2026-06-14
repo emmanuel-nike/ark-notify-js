@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
-import type { LoginInput, RegisterInput, User } from '../types'
+import type { LoginInput, User } from '../types'
 import { ArkNotifyError } from '../utils'
 import { useArkNotify } from './useArkNotify'
 
-const TOKEN_STORAGE_KEY = 'ark-notify-token'
+const TOKEN_STORAGE_KEY = 'ark-notify-js-token'
 
 export interface UsePlatformAuthOptions {
   storageKey?: string
@@ -15,7 +15,6 @@ export interface UsePlatformAuthResult {
   token: string | null
   loading: boolean
   error: ArkNotifyError | null
-  register: (input: RegisterInput) => Promise<void>
   login: (input: LoginInput) => Promise<void>
   logout: () => void
   refreshUser: () => Promise<void>
@@ -79,24 +78,6 @@ export function usePlatformAuth(options: UsePlatformAuthOptions = {}): UsePlatfo
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const register = useCallback(
-    async (input: RegisterInput) => {
-      setLoading(true)
-      setError(null)
-      try {
-        const res = await client.register(input)
-        saveToken(res.token)
-        setUser(res.user)
-      } catch (err) {
-        if (err instanceof ArkNotifyError) setError(err)
-        throw err
-      } finally {
-        setLoading(false)
-      }
-    },
-    [client, saveToken]
-  )
-
   const login = useCallback(
     async (input: LoginInput) => {
       setLoading(true)
@@ -126,7 +107,6 @@ export function usePlatformAuth(options: UsePlatformAuthOptions = {}): UsePlatfo
     token,
     loading,
     error,
-    register,
     login,
     logout,
     refreshUser,

@@ -58,13 +58,6 @@ export interface UpdateApplicationInput {
 
 // ── Auth ────────────────────────────────────────────────────────────────────
 
-export interface RegisterInput {
-  email: string
-  password: string
-  first_name: string
-  last_name: string
-}
-
 export interface LoginInput {
   email: string
   password: string
