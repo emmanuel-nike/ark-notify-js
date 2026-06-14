@@ -24,4 +24,3 @@ export type {
 } from './usePlatformAuth'
 export { useSSE } from './useSSE'
 export type { UseSSEOptions, UseSSEResult } from './useSSE'
-export { useAdminChannels } from './useAdminChannels'

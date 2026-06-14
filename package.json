@@ -1,6 +1,6 @@
 {
   "name": "@emmanuel-nike/ark-notify-js",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "JavaScript SDK for Ark Notify — real-time pub/sub, presence, and platform management",
   "license": "MIT",
   "type": "module",
@@ -27,6 +27,16 @@
         "types": "./dist/react/index.d.cts",
         "default": "./dist/react/index.cjs"
       }
+    },
+    "./server": {
+      "import": {
+        "types": "./dist/server/index.d.ts",
+        "default": "./dist/server/index.js"
+      },
+      "require": {
+        "types": "./dist/server/index.d.cts",
+        "default": "./dist/server/index.cjs"
+      }
     }
   },
   "files": [
@@ -49,6 +59,7 @@
     }
   },
   "devDependencies": {
+    "@types/node": "^25.9.3",
     "@types/react": "^19.1.8",
     "react": "^19.1.0",
     "tsup": "^8.5.0",

@@ -258,14 +258,55 @@ autoConn.publish('room-1', 'message', { text: 'hi' })
 
 When `token` is omitted, `ArkNotifyConnection` automatically calls `POST /api/v1/apps/:appKey/connection-token` when `clientId` is set. Pass `credentials` for backend-only apps, or omit them when the application has a `serverAuthUrl` (frontend-safe). On reconnect, a fresh token is fetched.
 
-## System admin
+## Server auth URL webhook
 
-```tsx
-import { useAdminChannels } from 'ark-notify-js/react'
+When your application has a `serverAuthUrl`, Ark Notify POSTs to it before issuing a connection token. Use `@emmanuel-nike/ark-notify-js/server` in your backend handler:
 
-const { data, loading, refresh } = useAdminChannels()
-// Requires SYSTEM_ADMIN JWT via ArkNotifyProvider token
+```ts
+import {
+  handleServerAuth,
+  parseServerAuthRequest,
+} from '@emmanuel-nike/ark-notify-js/server'
+
+app.post('/api/ark/connection-auth', async (req, res) => {
+  const request = parseServerAuthRequest(req.body)
+  if (!request) {
+    return res.status(400).json({ allowed: false })
+  }
+
+  const user = await getUserFromSession(req)
+  if (!user) {
+    return res.status(401).json({ allowed: false })
+  }
+
+  const response = await handleServerAuth({
+    request,
+    isAuthorized: () => ({
+      clientId: user.id,
+      capabilities: { publish: false },
+    }),
+  })
+
+  if ('token' in response || response.allowed === true) {
+    return res.json(response)
+  }
+
+  return res.status(403).json(response)
+})
 ```
+
+To return a pre-signed token instead (option B), pass app credentials:
+
+```ts
+const response = await handleServerAuth({
+  request,
+  isAuthorized: () => true,
+  credentials: { appKey: process.env.ARK_APP_KEY!, secret: process.env.ARK_APP_SECRET! },
+})
+// => { token: "app_abc.<payload>.<signature>" }
+```
+
+Or build a response directly with `createAuthorizedServerAuthResponse()`.
 
 ## API coverage
 
@@ -276,7 +317,6 @@ const { data, loading, refresh } = useAdminChannels()
 | Login / me                | `usePlatformAuth`, `ArkNotifyClient`      | `.login()`, `.me()`                                 |
 | Application CRUD          | `useApplications`, `ArkNotifyClient`      | `.listApplications()`, `.createApplication()`, …    |
 | Regenerate secret         | `useApplications`                         | `.regenerateSecret()`                               |
-| Admin channels            | `useAdminChannels`                        | `.adminChannels()`                                  |
 | Publish (server)          | `ArkNotifyClient`                         | `.publishEvent()`                                   |
 | Channel auth (server)     | `ArkNotifyClient`                         | `.authorizeChannel()`                               |
 | Connection token (server) | `ArkNotifyClient`, `fetchConnectionToken` | `.issueConnectionToken()`, `fetchConnectionToken()` |

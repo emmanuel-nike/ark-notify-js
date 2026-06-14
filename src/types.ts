@@ -111,56 +111,58 @@ export interface ConnectionTokenResponse {
   capabilities: ConnectionCapabilities
 }
 
-// ── Admin ───────────────────────────────────────────────────────────────────
+/** Payload Ark Notify POSTs to your `serverAuthUrl`. */
+export interface ServerAuthRequest {
+  client_id: string
+  user_data?: Record<string, unknown> | null
+  capabilities?: Partial<ConnectionCapabilities> | null
+  ttl?: number | null
+}
 
-export interface PresenceMember {
-  connectionId: string
+/** Approve a connection token request (option A). */
+export interface ServerAuthAllowedResponse {
+  allowed: true
+  client_id: string
+  capabilities?: ConnectionCapabilities
+  ttl?: number
+}
+
+/** Approve with a pre-signed token (option B). */
+export interface ServerAuthTokenResponse {
+  token: string
+}
+
+export type ServerAuthApprovedResponse = ServerAuthAllowedResponse | ServerAuthTokenResponse
+
+export interface ServerAuthDeniedResponse {
+  allowed: false
+  reason?: string
+}
+
+export type ServerAuthResponse = ServerAuthApprovedResponse | ServerAuthDeniedResponse
+
+export interface CreateAuthorizedServerAuthResponseOptions {
   clientId: string
-  data: Record<string, unknown>
-  updatedAt: number
+  capabilities?: Partial<ConnectionCapabilities>
+  ttl?: number
+  /** When provided, returns a pre-signed token instead of `{ allowed: true }`. */
+  credentials?: AppCredentials
 }
 
-export interface AdminConnection {
-  connectionId: string
-  clientId: string
-  transport: 'websocket' | 'sse'
-  authenticated: boolean
-  connectedAt: number
-}
+export type ServerAuthDecision =
+  | false
+  | {
+      clientId?: string
+      capabilities?: Partial<ConnectionCapabilities>
+      ttl?: number
+    }
 
-export interface AdminChannel {
-  tenantId: string
-  channel: string
-  applicationId: string
-  applicationName: string
-  appKey: string
-  subscriberCount: number
-  presenceMemberCount: number
-  presenceMembers: PresenceMember[]
-  connections: AdminConnection[]
-  analytics: {
-    eventsByType: Record<string, number>
-    totalEvents: number
-    lastEventAt: string | null
-  }
-}
-
-export interface AdminChannelsResponse {
-  generatedAt: string
-  summary: {
-    totalApplications: number
-    totalChannels: number
-    totalConnections: number
-    totalPresenceMembers: number
-    totalSubscribers: number
-    totalAnalyticsEvents: number
-  }
-  channels: AdminChannel[]
-  connections: AdminConnection[]
-  analytics: {
-    eventsByType: Array<{ eventType: string; eventCount: number }>
-    recentEvents: unknown[]
-  }
+export interface HandleServerAuthOptions {
+  request: ServerAuthRequest
+  isAuthorized: (
+    request: ServerAuthRequest
+  ) => ServerAuthDecision | Promise<ServerAuthDecision>
+  credentials?: AppCredentials
 }
 
 // ── WebSocket / SSE messages ─────────────────────────────────────────────────

@@ -2,7 +2,6 @@ import { resolveBaseUrl } from './config'
 import { fetchConnectionToken } from './connection-token'
 import { ArkNotifyError, resolveValue } from './utils'
 import type {
-  AdminChannelsResponse,
   Application,
   ArkNotifyClientConfig,
   AppCredentials,
@@ -131,12 +130,6 @@ export class ArkNotifyClient {
     return this.request(`/api/v1/applications/${id}/regenerate-secret`, {
       method: 'POST',
     })
-  }
-
-  // ── System admin ────────────────────────────────────────────────────────
-
-  adminChannels(): Promise<AdminChannelsResponse> {
-    return this.request('/api/v1/admin/channels')
   }
 
   // ── Data plane ──────────────────────────────────────────────────────────
