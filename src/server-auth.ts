@@ -10,7 +10,7 @@ import type {
   ServerAuthDecision,
 } from './types'
 
-const CLIENT_ID_PATTERN = /^[a-zA-Z0-9_\-.]{1,128}$/
+const CLIENT_ID_PATTERN = /^[a-zA-Z0-9_\-.@]{1,128}$/
 const DEFAULT_TTL_SECONDS = 3600
 const MAX_TTL_SECONDS = 86400
 
@@ -112,8 +112,8 @@ export function parseServerAuthRequest(body: unknown): ServerAuthRequest | null 
       user_data === undefined
         ? null
         : user_data && typeof user_data === 'object'
-          ? (user_data as Record<string, unknown>)
-          : null,
+        ? (user_data as Record<string, unknown>)
+        : null,
     capabilities:
       capabilities && typeof capabilities === 'object'
         ? (capabilities as Partial<ConnectionCapabilities>)
