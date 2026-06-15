@@ -1,6 +1,6 @@
 {
   "name": "@emmanuel-nike/ark-notify-js",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "JavaScript SDK for Ark Notify — real-time pub/sub, presence, and platform management",
   "license": "MIT",
   "type": "module",

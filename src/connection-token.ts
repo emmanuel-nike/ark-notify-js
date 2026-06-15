@@ -22,7 +22,9 @@ function requiresAppSecret(options: FetchConnectionTokenOptions): boolean {
   return false
 }
 
-function buildConnectionTokenRequest(options: FetchConnectionTokenOptions): {
+function buildConnectionTokenRequest(
+  options: FetchConnectionTokenOptions
+): {
   url: string
   headers: Record<string, string>
   body: ConnectionTokenInput
@@ -37,8 +39,8 @@ function buildConnectionTokenRequest(options: FetchConnectionTokenOptions): {
     userData,
     ttl,
     capabilities,
-    serverAuthUrl,
     server_auth_url,
+    serverAuthUrl,
   } = options
 
   const resolvedClientId = client_id ?? clientId
@@ -47,9 +49,7 @@ function buildConnectionTokenRequest(options: FetchConnectionTokenOptions): {
   }
 
   if (requiresAppSecret(options) && !credentials) {
-    throw new Error(
-      'credentials are required when serverAuthUrl is explicitly set to null'
-    )
+    throw new Error('credentials are required when serverAuthUrl is explicitly set to null')
   }
 
   const body: ConnectionTokenInput = {

@@ -38,9 +38,9 @@ export class ArkNotifyConnection {
   private connectionId: string | null = null
   private clientId: string | null = null
   private authenticated = false
-  private subscribedChannels = new Set<string>()
-  private pendingSubscriptions = new Map<string, SubscribeOptions>()
-  private listeners = new Map<EventName, Set<EventMap[EventName]>>()
+  private readonly subscribedChannels = new Set<string>()
+  private readonly pendingSubscriptions = new Map<string, SubscribeOptions>()
+  private readonly listeners = new Map<EventName, Set<EventMap[EventName]>>()
   private reconnectAttempt = 0
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null
   private intentionalClose = false
@@ -82,12 +82,12 @@ export class ArkNotifyConnection {
     if (!this.listeners.has(event)) {
       this.listeners.set(event, new Set())
     }
-    this.listeners.get(event)!.add(handler as EventMap[EventName])
+    this.listeners.get(event)!.add(handler)
     return () => this.off(event, handler)
   }
 
   off<E extends EventName>(event: E, handler: EventMap[E]): void {
-    this.listeners.get(event)?.delete(handler as EventMap[EventName])
+    this.listeners.get(event)?.delete(handler)
   }
 
   private emit<E extends EventName>(event: E, ...args: Parameters<EventMap[E]>): void {
@@ -124,9 +124,7 @@ export class ArkNotifyConnection {
     this.clearReconnectTimer()
     this.setState(this.reconnectAttempt > 0 ? 'reconnecting' : 'connecting')
 
-    const url = new URL(
-      toWebSocketUrl(this.config.baseUrl, `/app/${this.config.appKey}`)
-    )
+    const url = new URL(toWebSocketUrl(this.config.baseUrl, `/app/${this.config.appKey}`))
 
     let token = resolveValue(this.config.token)
     if (!token && this.config.clientId) {
@@ -135,7 +133,7 @@ export class ArkNotifyConnection {
         appKey: this.config.appKey,
         credentials: this.config.credentials,
         client_id: this.config.clientId,
-        user_data: this.config.user_data,
+        user_data: this.config.userData,
         serverAuthUrl: this.config.serverAuthUrl,
         fetch: this.config.fetch,
       })

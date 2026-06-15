@@ -159,9 +159,7 @@ export type ServerAuthDecision =
 
 export interface HandleServerAuthOptions {
   request: ServerAuthRequest
-  isAuthorized: (
-    request: ServerAuthRequest
-  ) => ServerAuthDecision | Promise<ServerAuthDecision>
+  isAuthorized: (request: ServerAuthRequest) => ServerAuthDecision | Promise<ServerAuthDecision>
   credentials?: AppCredentials
 }
 
@@ -278,10 +276,7 @@ export interface AppCredentials {
   secret: string
 }
 
-export type PrivateChannelAuthHandler = (
-  channel: string,
-  connectionId: string
-) => Promise<string>
+export type PrivateChannelAuthHandler = (channel: string, connectionId: string) => Promise<string>
 
 export interface ArkNotifyConnectionConfig {
   baseUrl?: string
@@ -294,7 +289,7 @@ export interface ArkNotifyConnectionConfig {
   /** Override server auth URL when auto-fetching a token; uses the application default when omitted. */
   serverAuthUrl?: string | null
   /** Forwarded to the connection-token endpoint when auto-fetching a token. */
-  user_data?: Record<string, unknown>
+  userData?: Record<string, unknown>
   autoReconnect?: boolean
   reconnectDelayMs?: number
   maxReconnectDelayMs?: number
