@@ -6,7 +6,7 @@ import type {
   PresenceMessage,
   ServerMessage,
 } from './types'
-import { isPrivateChannel, resolveValue } from './utils'
+import { isPrivateChannel, appendQueryParams, resolveValue } from './utils'
 
 type SSEEventMap = {
   connected: (message: ConnectedMessage) => void
@@ -23,7 +23,7 @@ export class ArkNotifySSE {
   private readonly config: ArkNotifySSEConfig & { baseUrl: string }
   private es: EventSource | null = null
   private connectionId: string | null = null
-  private listeners = new Map<SSEEventName, Set<SSEEventMap[SSEEventName]>>()
+  private readonly listeners = new Map<SSEEventName, Set<SSEEventMap[SSEEventName]>>()
   private readonly EventSourceCtor: typeof EventSource
 
   constructor(config: ArkNotifySSEConfig) {
@@ -39,12 +39,12 @@ export class ArkNotifySSE {
     if (!this.listeners.has(event)) {
       this.listeners.set(event, new Set())
     }
-    this.listeners.get(event)!.add(handler as SSEEventMap[SSEEventName])
+    this.listeners.get(event)!.add(handler)
     return () => this.off(event, handler)
   }
 
   off<E extends SSEEventName>(event: E, handler: SSEEventMap[E]): void {
-    this.listeners.get(event)?.delete(handler as SSEEventMap[SSEEventName])
+    this.listeners.get(event)?.delete(handler)
   }
 
   private emit<E extends SSEEventName>(event: E, ...args: Parameters<SSEEventMap[E]>): void {
@@ -57,25 +57,7 @@ export class ArkNotifySSE {
     if (this.es) return
 
     const base = this.config.baseUrl.replace(/\/$/, '')
-    const url = new URL(`${base}/app/${this.config.appKey}/stream`)
-    url.searchParams.set('channels', this.config.channels.join(','))
-
-    const token = resolveValue(this.config.token)
-    if (token) {
-      url.searchParams.set('token', token)
-    } else if (this.config.clientId) {
-      url.searchParams.set('clientId', this.config.clientId)
-    }
-
-    if (this.config.history) {
-      url.searchParams.set('history', 'true')
-    }
-
-    if (this.config.user_data) {
-      url.searchParams.set('user_data', JSON.stringify(this.config.user_data))
-    }
-
-    let authMap = this.config.auth ? { ...this.config.auth } : {}
+    const authMap = this.config.auth ? { ...this.config.auth } : {}
 
     const privateChannels = this.config.channels.filter(isPrivateChannel)
     if (privateChannels.length > 0 && this.config.onPrivateChannelAuth && !this.config.auth) {
@@ -83,27 +65,33 @@ export class ArkNotifySSE {
       // Fetch tokens server-side and pass them via the `auth` option, or use WebSocket instead.
     }
 
-    if (Object.keys(authMap).length > 0) {
-      url.searchParams.set('auth', JSON.stringify(authMap))
-    }
+    const token = resolveValue(this.config.token)
+    const streamUrl = appendQueryParams(`${base}/app/${this.config.appKey}/stream`, {
+      channels: this.config.channels.join(','),
+      token: token || undefined,
+      clientId: !token && this.config.clientId ? this.config.clientId : undefined,
+      history: this.config.history ? 'true' : undefined,
+      user_data: this.config.user_data ? JSON.stringify(this.config.user_data) : undefined,
+      auth: Object.keys(authMap).length > 0 ? JSON.stringify(authMap) : undefined,
+    })
 
-    this.es = new this.EventSourceCtor(url.toString())
+    this.es = new this.EventSourceCtor(streamUrl)
 
     this.es.addEventListener('connected', (e) => {
-      const message = JSON.parse((e as MessageEvent).data) as ConnectedMessage
+      const message = JSON.parse(e.data) as ConnectedMessage
       this.connectionId = message.connection_id
       this.emit('connected', message)
       this.emit('message', message)
     })
 
     this.es.addEventListener('event', (e) => {
-      const message = JSON.parse((e as MessageEvent).data) as EventMessage
+      const message = JSON.parse(e.data) as EventMessage
       this.emit('event', message)
       this.emit('message', message)
     })
 
     this.es.addEventListener('presence', (e) => {
-      const message = JSON.parse((e as MessageEvent).data) as PresenceMessage
+      const message = JSON.parse(e.data) as PresenceMessage
       this.emit('presence', message)
       this.emit('message', message)
     })
@@ -122,7 +110,11 @@ export class ArkNotifySSE {
     }
   }
 
-  bind(channel: string, event: string, handler: (data: unknown, message: EventMessage) => void): () => void {
+  bind(
+    channel: string,
+    event: string,
+    handler: (data: unknown, message: EventMessage) => void
+  ): () => void {
     const listener = (message: EventMessage) => {
       if (message.channel === channel && message.event === event) {
         handler(message.data, message)

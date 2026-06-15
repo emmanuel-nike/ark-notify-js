@@ -10,7 +10,7 @@ import type {
   ServerMessage,
   SubscribeOptions,
 } from './types'
-import { isPrivateChannel, resolveValue, toWebSocketUrl } from './utils'
+import { isPrivateChannel, appendQueryParams, resolveValue, toWebSocketUrl } from './utils'
 
 type EventMap = {
   state: (state: ConnectionState) => void
@@ -124,7 +124,7 @@ export class ArkNotifyConnection {
     this.clearReconnectTimer()
     this.setState(this.reconnectAttempt > 0 ? 'reconnecting' : 'connecting')
 
-    const url = new URL(toWebSocketUrl(this.config.baseUrl, `/app/${this.config.appKey}`))
+    let wsUrl = toWebSocketUrl(this.config.baseUrl, `/app/${this.config.appKey}`)
 
     let token = resolveValue(this.config.token)
     if (!token && this.config.clientId) {
@@ -141,12 +141,12 @@ export class ArkNotifyConnection {
     }
 
     if (token) {
-      url.searchParams.set('token', token)
+      wsUrl = appendQueryParams(wsUrl, { token })
     } else if (this.config.clientId) {
-      url.searchParams.set('clientId', this.config.clientId)
+      wsUrl = appendQueryParams(wsUrl, { clientId: this.config.clientId })
     }
 
-    this.ws = new this.WebSocketCtor(url.toString())
+    this.ws = new this.WebSocketCtor(wsUrl)
 
     this.ws.onopen = () => {
       this.reconnectAttempt = 0
