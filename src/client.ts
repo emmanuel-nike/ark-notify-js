@@ -31,8 +31,8 @@ export class ArkNotifyClient {
   private readonly fetchFn: typeof fetch
   private token?: string | (() => string | null | undefined)
 
-  constructor(config: ArkNotifyClientConfig) {
-    this.baseUrl = resolveBaseUrl(config.baseUrl)
+  constructor(config: Readonly<ArkNotifyClientConfig> = {}) {
+    this.baseUrl = resolveBaseUrl(config?.baseUrl)
     this.token = config.token
     this.fetchFn = config.fetch ?? globalThis.fetch.bind(globalThis)
   }
@@ -115,10 +115,7 @@ export class ArkNotifyClient {
     return this.request(`/api/v1/applications/${id}`)
   }
 
-  updateApplication(
-    id: string,
-    input: UpdateApplicationInput
-  ): Promise<{ app: Application }> {
+  updateApplication(id: string, input: UpdateApplicationInput): Promise<{ app: Application }> {
     return this.request(`/api/v1/applications/${id}`, { method: 'PUT', body: input })
   }
 

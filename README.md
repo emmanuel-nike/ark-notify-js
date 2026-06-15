@@ -8,10 +8,25 @@ JavaScript SDK for [Ark Notify](https://github.com/ark-notify/ark-notify) — re
 ## Install
 
 ```bash
-npm install ark-notify-js
+npm install @emmanuel-nike/ark-notify-js
 ```
 
 For React apps, `react` 18+ is a peer dependency.
+
+### Node.js / AdonisJS (server)
+
+Use the `/server` subpath for `serverAuthUrl` webhook helpers:
+
+```ts
+import { handleServerAuth, parseServerAuthRequest } from '@emmanuel-nike/ark-notify-js/server'
+import { ArkNotifyClient, fetchConnectionToken } from '@emmanuel-nike/ark-notify-js'
+```
+
+If you see `Cannot find module '@emmanuel-nike/ark-notify-js'`:
+
+1. Confirm the dependency is in your app's `package.json` (not only in this repo).
+2. Run `npm install` locally and rebuild your Docker image so `node_modules` includes the package.
+3. Use the scoped name exactly: `@emmanuel-nike/ark-notify-js` (not `ark-notify-js`).
 
 ## Quick start (React)
 
