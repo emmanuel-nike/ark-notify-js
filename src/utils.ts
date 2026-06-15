@@ -17,9 +17,9 @@ export class ArkNotifyError extends Error {
 }
 
 export function toWebSocketUrl(baseUrl: string, path: string): string {
-  const url = new URL(path, baseUrl)
-  url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:'
-  return url.toString()
+  const httpUrl = new URL(path, baseUrl).href
+  // Avoid assigning to url.protocol — not supported in React Native and some runtimes.
+  return httpUrl.replace(/^https:/i, 'wss:').replace(/^http:/i, 'ws:')
 }
 
 export function resolveValue<T>(value: T | (() => T)): T {
