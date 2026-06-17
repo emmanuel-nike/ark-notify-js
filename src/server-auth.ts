@@ -10,7 +10,7 @@ import type {
   ServerAuthDecision,
 } from './types'
 
-const CLIENT_ID_PATTERN = /^[a-zA-Z0-9_\-.@]{1,128}$/
+const CLIENT_ID_PATTERN = /^[a-zA-Z0-9_\-.@\+]{1,128}$/
 const DEFAULT_TTL_SECONDS = 3600
 const MAX_TTL_SECONDS = 86400
 
