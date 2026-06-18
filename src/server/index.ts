@@ -7,6 +7,8 @@ export {
   parseServerAuthRequest,
 } from '../server-auth'
 
+export { ArkNotifyServerStream } from '../server-stream'
+
 export type {
   CreateAuthorizedServerAuthResponseOptions,
   HandleServerAuthOptions,

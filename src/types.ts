@@ -181,6 +181,14 @@ export interface ConnectedMessage {
   channels?: string[]
 }
 
+export interface ServerStreamConnectedMessage {
+  type: 'connected'
+  connection_id: string
+  app_key: string
+  channels: string[]
+  transport: 'server-stream'
+}
+
 export interface EventMessage {
   type: 'event'
   channel: string
@@ -316,6 +324,15 @@ export interface ArkNotifySSEConfig {
   history?: boolean
   onPrivateChannelAuth?: PrivateChannelAuthHandler
   EventSource?: typeof EventSource
+}
+
+export interface ArkNotifyServerStreamConfig {
+  baseUrl?: string
+  appKey: string
+  credentials: AppCredentials
+  channels: string[]
+  history?: boolean
+  fetch?: typeof fetch
 }
 
 export interface ChannelEventHandler<T = unknown> {

@@ -3,6 +3,7 @@ export type { ArkNotifyGlobalConfig } from './config'
 export { ArkNotifyClient } from './client'
 export { ArkNotifyConnection } from './connection'
 export { ArkNotifySSE } from './sse'
+export { ArkNotifyServerStream } from './server-stream'
 export { fetchConnectionToken } from './connection-token'
 export type { FetchConnectionTokenOptions } from './connection-token'
 export {
