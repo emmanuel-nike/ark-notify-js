@@ -2,7 +2,7 @@
 
 JavaScript SDK for [Ark Notify](https://github.com/ark-notify/ark-notify) — real-time pub/sub, presence, SSE streaming, and platform management.
 
-- **Core API** (`ark-notify-js`) — imperative client, WebSocket, and SSE classes for any JavaScript environment
+- **Core API** (`ark-notify-js`) — imperative client, WebSocket, SSE, and server-side stream classes for any JavaScript environment
 - **React bindings** (`ark-notify-js/react`) — hooks and provider for React 18+ applications
 
 ## Install
@@ -15,10 +15,14 @@ For React apps, `react` 18+ is a peer dependency.
 
 ### Node.js / AdonisJS (server)
 
-Use the `/server` subpath for `serverAuthUrl` webhook helpers:
+Use the `/server` subpath for `serverAuthUrl` webhook helpers and the server-side event stream:
 
 ```ts
-import { handleServerAuth, parseServerAuthRequest } from '@emmanuel-nike/ark-notify-js/server'
+import {
+  handleServerAuth,
+  parseServerAuthRequest,
+  ArkNotifyServerStream,
+} from '@emmanuel-nike/ark-notify-js/server'
 import { ArkNotifyClient, fetchConnectionToken } from '@emmanuel-nike/ark-notify-js'
 ```
 
@@ -323,6 +327,50 @@ const response = await handleServerAuth({
 
 Or build a response directly with `createAuthorizedServerAuthResponse()`.
 
+## Server stream (backend)
+
+Subscribe to channel events from your application backend over SSE. Unlike client SSE (`ArkNotifySSE`), the server stream uses app credentials (`X-App-Key` / `X-App-Secret`) — not connection tokens — and does not require per-channel HMAC tokens for private channels.
+
+Use this when a backend service needs to react to realtime events (webhooks, workers, sync jobs) without maintaining a WebSocket client.
+
+```ts
+import { ArkNotifyServerStream } from '@emmanuel-nike/ark-notify-js/server'
+
+const stream = new ArkNotifyServerStream({
+  appKey: process.env.ARK_APP_KEY!,
+  credentials: {
+    appKey: process.env.ARK_APP_KEY!,
+    secret: process.env.ARK_APP_SECRET!,
+  },
+  channels: ['room-1', 'orders'],
+  history: true, // optional — replay recent messages on connect
+})
+
+stream.on('connected', (msg) => {
+  console.log('Subscribed to', msg.channels, msg.connection_id)
+})
+
+stream.on('event', (msg) => {
+  console.log(msg.channel, msg.event, msg.data)
+})
+
+stream.bind('orders', 'order.created', (data) => {
+  console.log('New order', data)
+})
+
+await stream.connect()
+
+// later
+stream.disconnect()
+```
+
+**Notes:**
+
+- Backend-only — never use app credentials in browser code.
+- Uses `fetch` with a streaming SSE parser (not `EventSource`), so custom auth headers are supported.
+- Failed auth before the stream opens throws `ArkNotifyError` (same as other REST calls).
+- Stream lifecycle events: `connected`, `event`, `presence`, `message`, `error`, `close`.
+
 ## API coverage
 
 
@@ -340,6 +388,7 @@ Or build a response directly with `createAuthorizedServerAuthResponse()`.
 | Publish (client)          | `useChannel`, `ArkNotifyConnection`       | `.publish()`                                        |
 | Presence                  | `usePresence`, `ArkNotifyConnection`      | `.presenceEnter()`, `.presenceUpdate()`, …          |
 | SSE stream                | `useSSE`, `ArkNotifySSE`                  | `.connect()`                                        |
+| Server stream (backend)   | `ArkNotifyServerStream`                   | `.connect()`, `.bind()`, `.bindAll()`               |
 | Private channels          | `onPrivateChannelAuth` callback           | —                                                   |
 | Auto-reconnect            | `useConnection`                           | `autoReconnect: true`                               |
 | Heartbeat                 | `ArkNotifyConnection`                     | Server ping auto-replied                            |
@@ -361,7 +410,7 @@ try {
 }
 ```
 
-WebSocket errors are emitted via `connection.on('error', …)` or the `useConnection` state.
+WebSocket errors are emitted via `connection.on('error', …)` or the `useConnection` state. Server stream connection errors are emitted via `stream.on('error', …)`; failed auth before the stream opens throws `ArkNotifyError`.
 
 ## License
 
