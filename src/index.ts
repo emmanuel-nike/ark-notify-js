@@ -9,7 +9,10 @@ export type { FetchConnectionTokenOptions } from './connection-token'
 export {
   ArkNotifyError,
   appendQueryParams,
+  isAllChannelsSubscription,
   isPrivateChannel,
+  isServerStreamPattern,
+  matchesChannelPattern,
   resolveValue,
   toWebSocketUrl,
 } from './utils'

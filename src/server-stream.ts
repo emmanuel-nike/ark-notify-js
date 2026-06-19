@@ -7,7 +7,22 @@ import type {
   ServerErrorMessage,
   ServerStreamConnectedMessage,
 } from './types'
-import { appendQueryParams, ArkNotifyError } from './utils'
+import { appendQueryParams, ArkNotifyError, matchesChannelPattern } from './utils'
+
+const MAX_SERVER_STREAM_SUBSCRIPTIONS = 32
+
+function resolveServerStreamSubscriptions(
+  config: Pick<ArkNotifyServerStreamConfig, 'subscriptions' | 'channels'>
+): string[] {
+  const subscriptions = config.subscriptions ?? config.channels ?? []
+  if (subscriptions.length === 0) {
+    throw new Error('At least one subscription is required (exact channel, pattern, or *)')
+  }
+  if (subscriptions.length > MAX_SERVER_STREAM_SUBSCRIPTIONS) {
+    throw new Error(`A maximum of ${MAX_SERVER_STREAM_SUBSCRIPTIONS} subscriptions is allowed per stream`)
+  }
+  return subscriptions
+}
 
 type ServerStreamEventMap = {
   connected: (message: ServerStreamConnectedMessage) => void
@@ -130,7 +145,7 @@ async function readSseStream(
 }
 
 export class ArkNotifyServerStream {
-  private readonly config: ArkNotifyServerStreamConfig & { baseUrl: string }
+  private readonly config: ArkNotifyServerStreamConfig & { baseUrl: string; subscriptions: string[] }
   private readonly fetchFn: typeof fetch
   private readonly listeners = new Map<
     ServerStreamEventName,
@@ -138,15 +153,32 @@ export class ArkNotifyServerStream {
   >()
   private abortController: AbortController | null = null
   private connectionId: string | null = null
+  private connectedMessage: ServerStreamConnectedMessage | null = null
   private connecting = false
 
   constructor(config: ArkNotifyServerStreamConfig) {
-    this.config = { ...config, baseUrl: resolveBaseUrl(config.baseUrl) }
+    this.config = {
+      ...config,
+      baseUrl: resolveBaseUrl(config.baseUrl),
+      subscriptions: resolveServerStreamSubscriptions(config),
+    }
     this.fetchFn = config.fetch ?? globalThis.fetch.bind(globalThis)
   }
 
   getConnectionId(): string | null {
     return this.connectionId
+  }
+
+  getSubscriptions(): string[] {
+    return this.connectedMessage?.subscriptions ?? [...this.config.subscriptions]
+  }
+
+  getChannels(): string[] {
+    return this.connectedMessage?.channels ?? []
+  }
+
+  getPatterns(): string[] {
+    return this.connectedMessage?.patterns ?? []
   }
 
   on<E extends ServerStreamEventName>(event: E, handler: ServerStreamEventMap[E]): () => void {
@@ -181,7 +213,7 @@ export class ArkNotifyServerStream {
     const streamUrl = appendQueryParams(
       `${base}/api/v1/apps/${this.config.appKey}/server-stream`,
       {
-        channels: this.config.channels.join(','),
+        channels: this.config.subscriptions.join(','),
         history: this.config.history ? 'true' : undefined,
       }
     )
@@ -229,6 +261,7 @@ export class ArkNotifyServerStream {
           dispatchSseEvent(data, {
             onConnected: (message) => {
               this.connectionId = message.connection_id
+              this.connectedMessage = message
               this.emit('connected', message)
             },
             onEvent: (message) => this.emit('event', message),
@@ -245,6 +278,7 @@ export class ArkNotifyServerStream {
       if (this.abortController === abortController) {
         this.abortController = null
         this.connectionId = null
+        this.connectedMessage = null
         this.emit('close')
       }
     }
@@ -271,6 +305,31 @@ export class ArkNotifyServerStream {
   bindAll(channel: string, handler: (data: unknown, message: EventMessage) => void): () => void {
     const listener = (message: EventMessage) => {
       if (message.channel === channel) {
+        handler(message.data, message)
+      }
+    }
+    return this.on('event', listener)
+  }
+
+  bindMatching(
+    pattern: string,
+    event: string,
+    handler: (data: unknown, message: EventMessage) => void
+  ): () => void {
+    const listener = (message: EventMessage) => {
+      if (matchesChannelPattern(message.channel, pattern) && message.event === event) {
+        handler(message.data, message)
+      }
+    }
+    return this.on('event', listener)
+  }
+
+  bindAllMatching(
+    pattern: string,
+    handler: (data: unknown, message: EventMessage) => void
+  ): () => void {
+    const listener = (message: EventMessage) => {
+      if (matchesChannelPattern(message.channel, pattern)) {
         handler(message.data, message)
       }
     }

@@ -50,3 +50,20 @@ export function resolveValue<T>(value: T | (() => T)): T {
 export function isPrivateChannel(channel: string): boolean {
   return channel.startsWith('private-')
 }
+
+/** Whether a server-stream subscription entry is a pattern (`business-*` or `*`). */
+export function isServerStreamPattern(subscription: string): boolean {
+  return subscription === '*' || subscription.endsWith('*')
+}
+
+/** Whether a server-stream subscription entry matches all channels. */
+export function isAllChannelsSubscription(subscription: string): boolean {
+  return subscription === '*'
+}
+
+/** Whether an event channel name matches a server-stream prefix pattern or `*`. */
+export function matchesChannelPattern(channel: string, pattern: string): boolean {
+  if (pattern === '*') return true
+  if (!pattern.endsWith('*')) return channel === pattern
+  return channel.startsWith(pattern.slice(0, -1))
+}

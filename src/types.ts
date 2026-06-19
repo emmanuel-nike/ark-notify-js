@@ -185,7 +185,12 @@ export interface ServerStreamConnectedMessage {
   type: 'connected'
   connection_id: string
   app_key: string
+  /** Exact channel names subscribed on this stream. */
   channels: string[]
+  /** Prefix patterns (`business-*`) or `*` for all channels. */
+  patterns: string[]
+  /** Combined list passed in the `channels` query param. */
+  subscriptions: string[]
   transport: 'server-stream'
 }
 
@@ -330,7 +335,14 @@ export interface ArkNotifyServerStreamConfig {
   baseUrl?: string
   appKey: string
   credentials: AppCredentials
-  channels: string[]
+  /**
+   * Channel subscriptions: exact names (`room-1`), prefix patterns (`business-*`),
+   * or `*` for all channels. Max 32 entries.
+   */
+  subscriptions?: string[]
+  /** @deprecated Use `subscriptions`. */
+  channels?: string[]
+  /** Replay stored messages for exact channel names only (not patterns or `*`). */
   history?: boolean
   fetch?: typeof fetch
 }

@@ -333,6 +333,16 @@ Subscribe to channel events from your application backend over SSE. Unlike clien
 
 Use this when a backend service needs to react to realtime events (webhooks, workers, sync jobs) without maintaining a WebSocket client.
 
+Each subscription entry can be an exact channel name, a prefix pattern, or a wildcard:
+
+| Value | Matches |
+|-------|---------|
+| `room-1` | Exact channel name |
+| `business-*` | Any channel whose name starts with `business-` |
+| `*` | All channels for this application |
+
+You can combine exact names and patterns (max 32 entries). Overlapping subscriptions may deliver the same event more than once. Message history replay applies to **exact channel names only** — not patterns or `*`.
+
 ```ts
 import { ArkNotifyServerStream } from '@emmanuel-nike/ark-notify-js/server'
 
@@ -342,12 +352,21 @@ const stream = new ArkNotifyServerStream({
     appKey: process.env.ARK_APP_KEY!,
     secret: process.env.ARK_APP_SECRET!,
   },
-  channels: ['room-1', 'orders'],
-  history: true, // optional — replay recent messages on connect
+  subscriptions: ['room-1', 'business-*', 'users-*'],
+  history: true, // replays stored messages for exact names only (e.g. room-1)
+})
+
+// Subscribe to every channel in the app
+const allChannels = new ArkNotifyServerStream({
+  appKey: process.env.ARK_APP_KEY!,
+  credentials: { appKey: process.env.ARK_APP_KEY!, secret: process.env.ARK_APP_SECRET! },
+  subscriptions: ['*'],
 })
 
 stream.on('connected', (msg) => {
-  console.log('Subscribed to', msg.channels, msg.connection_id)
+  console.log('Exact channels', msg.channels)
+  console.log('Patterns', msg.patterns)
+  console.log('All subscriptions', msg.subscriptions)
 })
 
 stream.on('event', (msg) => {
@@ -356,6 +375,10 @@ stream.on('event', (msg) => {
 
 stream.bind('orders', 'order.created', (data) => {
   console.log('New order', data)
+})
+
+stream.bindMatching('business-*', 'order.created', (data, msg) => {
+  console.log('Business order on', msg.channel, data)
 })
 
 await stream.connect()
@@ -370,6 +393,7 @@ stream.disconnect()
 - Uses `fetch` with a streaming SSE parser (not `EventSource`), so custom auth headers are supported.
 - Failed auth before the stream opens throws `ArkNotifyError` (same as other REST calls).
 - Stream lifecycle events: `connected`, `event`, `presence`, `message`, `error`, `close`.
+- Use `bind()` / `bindAll()` for exact channel names; use `bindMatching()` / `bindAllMatching()` to filter events by prefix pattern or `*`.
 
 ## API coverage
 
@@ -388,7 +412,7 @@ stream.disconnect()
 | Publish (client)          | `useChannel`, `ArkNotifyConnection`       | `.publish()`                                        |
 | Presence                  | `usePresence`, `ArkNotifyConnection`      | `.presenceEnter()`, `.presenceUpdate()`, …          |
 | SSE stream                | `useSSE`, `ArkNotifySSE`                  | `.connect()`                                        |
-| Server stream (backend)   | `ArkNotifyServerStream`                   | `.connect()`, `.bind()`, `.bindAll()`               |
+| Server stream (backend)   | `ArkNotifyServerStream`                   | `.connect()`, `.bind()`, `.bindMatching()`, …       |
 | Private channels          | `onPrivateChannelAuth` callback           | —                                                   |
 | Auto-reconnect            | `useConnection`                           | `autoReconnect: true`                               |
 | Heartbeat                 | `ArkNotifyConnection`                     | Server ping auto-replied                            |
